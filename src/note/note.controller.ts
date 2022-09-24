@@ -103,9 +103,14 @@ export class NoteController {
   /*   ------------------------------------------------------------------- */
   @Post("")
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: "Post note",
     type: NoteEntity,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Whats wrong description",
+    type: BadRequest,
   })
   @ApiBody({ type: [createNoteDto] })
   async createNote(
@@ -157,7 +162,7 @@ export class NoteController {
   })
   @ApiResponse({
     status: 400,
-    description: "Not Found",
+    description: "Error message",
     type: BadRequest,
   })
   @ApiBody({ type: [NoteEntity] })
