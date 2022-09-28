@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { Categories } from "./types/categories";
-import { NoteEntity } from "./types/note.entity";
+import { NoteEntity, NoteEditEntity } from "./types/note.entity";
 import { StatsEntity } from "./types/stats.entity";
 import { createNoteDto } from "../note/dto/createNote.dto";
 
@@ -91,16 +91,21 @@ export class NoteService {
 
     return deletedNote;
   }
-  async editActiveNote(id: number, note: NoteEntity): Promise<NoteEntity[]> {
+  async editActiveNote(
+    id: number,
+    note: NoteEditEntity
+  ): Promise<NoteEntity[]> {
     const NoteIndex = await db.activeTask.findIndex((elem) => elem.id === id);
 
     let editedNote = {
       id: db.activeTask[NoteIndex].id,
-      name: note.name,
+      name: note.name || db.activeTask[NoteIndex].name,
       creation_time: db.activeTask[NoteIndex].creation_time,
-      category: note.category,
-      content: note.content,
-      dates: this.TransformDates(note.dates),
+      category: note.category || db.activeTask[NoteIndex].category,
+      content: note.content || db.activeTask[NoteIndex].content,
+      dates:
+        (note.dates && this.TransformDates(note.dates)) ||
+        db.activeTask[NoteIndex].dates,
     };
 
     const oldNote = await db.activeTask.splice(NoteIndex, 1, editedNote)[0];

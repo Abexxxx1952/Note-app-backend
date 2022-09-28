@@ -12,8 +12,9 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiTags, ApiResponse, ApiParam } from "@nestjs/swagger";
 import { NoteService } from "./note.service";
-import { NoteEntity } from "./types/note.entity";
+import { NoteEntity, NoteEditEntity } from "./types/note.entity";
 import { StatsEntity } from "./types/stats.entity";
+import { Categories } from "./types/categories";
 import { createNoteDto } from "./dto/createNote.dto";
 import { NotFoundResponse, BadRequest } from "./types/notFoundResponse";
 
@@ -165,10 +166,13 @@ export class NoteController {
     description: "Error message",
     type: BadRequest,
   })
-  @ApiBody({ type: [NoteEntity] })
+  @ApiBody({
+    type: NoteEditEntity,
+  })
   async editActiveNote(
     @Param("id", ParseIntPipe) id: number,
-    @Body(new ValidationPipe()) note: NoteEntity
+    @Body(new ValidationPipe())
+    note: NoteEditEntity
   ): Promise<NoteEntity[]> {
     return await this.appService.editActiveNote(id, note);
   }

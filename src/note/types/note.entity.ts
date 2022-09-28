@@ -33,3 +33,25 @@ export class NoteEntity {
   @IsNotEmpty()
   dates: string;
 }
+
+export class NoteEditEntity {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  category: Categories;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  dates: string;
+}
