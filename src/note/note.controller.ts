@@ -171,7 +171,7 @@ export class NoteController {
   })
   async editActiveNote(
     @Param("id", ParseIntPipe) id: number,
-    @Body(new ValidationPipe())
+    @Body(new ValidationPipe({ skipMissingProperties: true }))
     note: NoteEditEntity
   ): Promise<NoteEntity[]> {
     return await this.appService.editActiveNote(id, note);
