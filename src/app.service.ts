@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class AppService {
   getHello(): string {
-    return 'This is typed Note App backend !';
+    return "This is typed Note App backend !";
   }
 }

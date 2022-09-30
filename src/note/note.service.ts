@@ -1,27 +1,40 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import { Categories } from "./types/categories";
-import { NoteEntity, NoteEditEntity } from "./types/note.entity";
-import { StatsEntity } from "./types/stats.entity";
+import { ActiveNoteEntity } from "./entity/activeNote.entity";
+import { ArchivedNoteEntity } from "./entity/archivedNote.entity";
+import { Stats } from "./types/stats";
 import { createNoteDto } from "../note/dto/createNote.dto";
+import { NoteEditDto } from "./dto/NoteEdit.dto";
 
 import { db } from "../db/db";
 
 @Injectable()
 export class NoteService {
-  async getActiveNotes(): Promise<NoteEntity[]> {
-    const activeTask = await db.activeTask;
+  constructor(
+    @InjectRepository(ActiveNoteEntity)
+    private readonly activeNoteRepository: Repository<ActiveNoteEntity>,
+    @InjectRepository(ArchivedNoteEntity)
+    private readonly archivedNoteRepository: Repository<ArchivedNoteEntity>
+  ) {}
+  /*   ----------------------Get All ActiveNote--------------------------------------------- */
+  async getActiveNotes(): Promise<ActiveNoteEntity[]> {
+    const activeTask = await this.activeNoteRepository.find();
 
     return activeTask;
   }
-
-  async getArchiveNotes(): Promise<NoteEntity[]> {
-    const archivedTask = await db.archivedTask;
+  /*   ----------------------Get All ArchivedNote--------------------------------------------- */
+  async getArchiveNotes(): Promise<ArchivedNoteEntity[]> {
+    const archivedTask = await this.archivedNoteRepository.find();
 
     return archivedTask;
   }
-  async getActiveNoteById(id: number): Promise<NoteEntity> {
-    const note = await db.activeTask.find((elem) => {
-      return elem.id === id;
+
+  /*   ----------------------Get ActiveNote by ID--------------------------------------------- */
+  async getActiveNoteById(id: number): Promise<ActiveNoteEntity> {
+    const note = await this.activeNoteRepository.findOneBy({
+      id,
     });
     if (note) {
       return note;
@@ -29,9 +42,11 @@ export class NoteService {
 
     throw new BadRequestException();
   }
-  async getArchivedNoteById(id: number): Promise<NoteEntity> {
-    const note = await db.archivedTask.find((elem) => {
-      return elem.id === id;
+
+  /*   ----------------------Get ArchivedNote by ID--------------------------------------------- */
+  async getArchivedNoteById(id: number): Promise<ArchivedNoteEntity> {
+    const note = await this.archivedNoteRepository.findOneBy({
+      id,
     });
     if (note) {
       return note;
@@ -39,78 +54,99 @@ export class NoteService {
 
     throw new BadRequestException();
   }
-  async getStats(): Promise<StatsEntity[]> {
-    const stats = await Object.values(Categories).map((elem) => {
-      const activeTaskValue = db.activeTask.filter(
-        (filterElem) => filterElem.category === elem
-      ).length;
 
-      const archivedTaskValue = db.archivedTask.filter(
-        (filterElem) => filterElem.category === elem
-      ).length;
+  /*   ----------------------Get Stats --------------------------------------------- */
+  async getStats(): Promise<Stats[]> {
+    const categoriesArr = Object.values(Categories);
+    const stats = await Promise.all(
+      categoriesArr.map(async (elem) => {
+        const activeTaskValue = await this.activeNoteRepository.count({
+          where: {
+            category: elem,
+          },
+        });
 
-      return {
-        categories: elem,
-        active: activeTaskValue,
-        archived: archivedTaskValue,
-      };
-    });
+        const archivedTaskValue = await this.archivedNoteRepository.count({
+          where: {
+            category: elem,
+          },
+        });
+
+        return {
+          categories: elem,
+          active: activeTaskValue,
+          archived: archivedTaskValue,
+        };
+      })
+    );
 
     return stats;
   }
-  async createNote(note: createNoteDto): Promise<NoteEntity> {
-    if (note) {
-      const newNote = {
-        id: Math.random() * Math.pow(10, 16),
-        name: note.name,
-        creation_time: new Date().toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        }),
-        category: note.category,
-        content: note.content,
-        dates: this.TransformDates(note.dates),
-      };
 
-      const dbRes = await db.activeTask.push(newNote);
-
-      return db.activeTask[dbRes - 1];
-    }
-    /*  throw new BadRequestException(); */
-  }
-  async deleteActiveNote(id: number): Promise<NoteEntity> {
-    const NoteIndex = await db.activeTask.findIndex((elem) => elem.id === id);
-    const deletedNote = await db.activeTask.splice(NoteIndex, 1)[0];
-
-    return deletedNote;
-  }
-  async deleteArchivedNote(id: number): Promise<NoteEntity> {
-    const NoteIndex = await db.archivedTask.findIndex((elem) => elem.id === id);
-    const deletedNote = await db.archivedTask.splice(NoteIndex, 1)[0];
-
-    return deletedNote;
-  }
-  async editActiveNote(
-    id: number,
-    note: NoteEditEntity
-  ): Promise<NoteEntity[]> {
-    const NoteIndex = await db.activeTask.findIndex((elem) => elem.id === id);
-
-    let editedNote = {
-      id: db.activeTask[NoteIndex].id,
-      name: note.name || db.activeTask[NoteIndex].name,
-      creation_time: db.activeTask[NoteIndex].creation_time,
-      category: note.category || db.activeTask[NoteIndex].category,
-      content: note.content || db.activeTask[NoteIndex].content,
-      dates:
-        (note.dates && this.TransformDates(note.dates)) ||
-        db.activeTask[NoteIndex].dates,
+  /*   ----------------------Create new ActiveNote--------------------------------------------- */
+  async createNote(note: createNoteDto): Promise<ActiveNoteEntity> {
+    const newNote = {
+      name: note.name,
+      creation_time: new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      category: note.category,
+      content: note.content,
+      dates: this.TransformDates(note.dates),
     };
 
-    const oldNote = await db.activeTask.splice(NoteIndex, 1, editedNote)[0];
+    const newNoteRes = await this.activeNoteRepository.create(newNote);
+    const res = await this.activeNoteRepository.save(newNoteRes);
+    return res;
+  }
+  /*   ----------------------Delete ActiveNote--------------------------------------------- */
+  async deleteActiveNote(id: number): Promise<ActiveNoteEntity> {
+    const deletedNote = await this.activeNoteRepository.findOneBy({
+      id,
+    });
+    let result;
+    if (deletedNote) {
+      result = await this.activeNoteRepository.delete(id);
+    }
+    if (result) return deletedNote;
+  }
+  /*   ----------------------Delete ArchivedNote--------------------------------------------- */
+  async deleteArchivedNote(id: number): Promise<ArchivedNoteEntity> {
+    const deletedNote = await this.archivedNoteRepository.findOneBy({
+      id,
+    });
+    let result;
+    if (deletedNote) {
+      result = await this.activeNoteRepository.delete(id);
+    }
+    if (result) return deletedNote;
+  }
+  /*   ----------------------Edit existing ActiveNote--------------------------------------------- */
+  async editActiveNote(
+    id: number,
+    note: NoteEditDto
+  ): Promise<ActiveNoteEntity[]> {
+    const oldNote = await this.activeNoteRepository.findOneBy({
+      id,
+    });
 
-    return [oldNote, editedNote];
+    if (note.dates) {
+      note.dates = this.TransformDates(note.dates);
+    }
+    let result;
+
+    if (oldNote) {
+      result = await this.activeNoteRepository.update(id, { ...note });
+    }
+
+    if (result) {
+      const editedNote = await this.activeNoteRepository.findOneBy({
+        id,
+      });
+      return [oldNote, editedNote];
+    }
   }
 
   private TransformDates(dates: string): string {

@@ -12,10 +12,11 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiTags, ApiResponse, ApiParam } from "@nestjs/swagger";
 import { NoteService } from "./note.service";
-import { NoteEntity, NoteEditEntity } from "./types/note.entity";
-import { StatsEntity } from "./types/stats.entity";
-import { Categories } from "./types/categories";
+import { ActiveNoteEntity } from "./entity/activeNote.entity";
+import { ArchivedNoteEntity } from "./entity/archivedNote.entity";
+import { Stats } from "./types/stats";
 import { createNoteDto } from "./dto/createNote.dto";
+import { NoteEditDto } from "./dto/NoteEdit.dto";
 import { NotFoundResponse, BadRequest } from "./types/notFoundResponse";
 
 @ApiTags("Notes")
@@ -27,14 +28,14 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Get all active notes",
-    type: [NoteEntity],
+    type: [ActiveNoteEntity],
   })
   @ApiResponse({
     status: 404,
     description: "Not Found",
     type: NotFoundResponse,
   })
-  async getActiveNotes(): Promise<NoteEntity[]> {
+  async getActiveNotes(): Promise<ActiveNoteEntity[]> {
     return await this.appService.getActiveNotes();
   }
   /*   ------------------------------------------------------------------- */
@@ -42,14 +43,14 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Get all archived notes",
-    type: [NoteEntity],
+    type: [ArchivedNoteEntity],
   })
   @ApiResponse({
     status: 404,
     description: "Not Found",
     type: NotFoundResponse,
   })
-  async getArchivedNotes(): Promise<NoteEntity[]> {
+  async getArchivedNotes(): Promise<ArchivedNoteEntity[]> {
     return await this.appService.getArchiveNotes();
   }
   /*   ------------------------------------------------------------------- */
@@ -58,7 +59,7 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Get active notes by ID",
-    type: NoteEntity,
+    type: ActiveNoteEntity,
   })
   @ApiResponse({
     status: 400,
@@ -66,7 +67,7 @@ export class NoteController {
     type: BadRequest,
   })
   @UsePipes(ParseIntPipe)
-  async getActiveNoteById(@Param("id") id: number): Promise<NoteEntity> {
+  async getActiveNoteById(@Param("id") id: number): Promise<ActiveNoteEntity> {
     return await this.appService.getActiveNoteById(id);
   }
   /*   ------------------------------------------------------------------- */
@@ -75,7 +76,7 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Get archived notes by ID",
-    type: NoteEntity,
+    type: ArchivedNoteEntity,
   })
   @ApiResponse({
     status: 400,
@@ -83,7 +84,9 @@ export class NoteController {
     type: BadRequest,
   })
   @UsePipes(ParseIntPipe)
-  async getArchivedNoteById(@Param("id") id: number): Promise<NoteEntity> {
+  async getArchivedNoteById(
+    @Param("id") id: number
+  ): Promise<ArchivedNoteEntity> {
     return await this.appService.getArchivedNoteById(id);
   }
   /*   ------------------------------------------------------------------- */
@@ -91,14 +94,14 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Get note stats",
-    type: [StatsEntity],
+    type: [Stats],
   })
   @ApiResponse({
     status: 404,
     description: "Not Found",
     type: NotFoundResponse,
   })
-  async getNotesStats(): Promise<StatsEntity[]> {
+  async getNotesStats(): Promise<Stats[]> {
     return await this.appService.getStats();
   }
   /*   ------------------------------------------------------------------- */
@@ -106,7 +109,7 @@ export class NoteController {
   @ApiResponse({
     status: 201,
     description: "Post note",
-    type: NoteEntity,
+    type: ActiveNoteEntity,
   })
   @ApiResponse({
     status: 400,
@@ -116,7 +119,7 @@ export class NoteController {
   @ApiBody({ type: [createNoteDto] })
   async createNote(
     @Body(new ValidationPipe()) note: createNoteDto
-  ): Promise<NoteEntity> {
+  ): Promise<ActiveNoteEntity> {
     return await this.appService.createNote(note);
   }
   /*   ------------------------------------------------------------------- */
@@ -125,7 +128,7 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Delete active note by ID",
-    type: NoteEntity,
+    type: ActiveNoteEntity,
   })
   @ApiResponse({
     status: 400,
@@ -133,7 +136,7 @@ export class NoteController {
     type: BadRequest,
   })
   @UsePipes(ParseIntPipe)
-  async deleteActiveNote(@Param("id") id: number): Promise<NoteEntity> {
+  async deleteActiveNote(@Param("id") id: number): Promise<ActiveNoteEntity> {
     return await this.appService.deleteActiveNote(id);
   }
   /*   ------------------------------------------------------------------- */
@@ -142,7 +145,7 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Delete archived note by ID",
-    type: NoteEntity,
+    type: ArchivedNoteEntity,
   })
   @ApiResponse({
     status: 400,
@@ -150,7 +153,9 @@ export class NoteController {
     type: BadRequest,
   })
   @UsePipes(ParseIntPipe)
-  async deleteArchivedNote(@Param("id") id: number): Promise<NoteEntity> {
+  async deleteArchivedNote(
+    @Param("id") id: number
+  ): Promise<ArchivedNoteEntity> {
     return await this.appService.deleteArchivedNote(id);
   }
   /*   ------------------------------------------------------------------- */
@@ -159,7 +164,7 @@ export class NoteController {
   @ApiResponse({
     status: 200,
     description: "Edit active note",
-    type: [NoteEntity],
+    type: [ActiveNoteEntity],
   })
   @ApiResponse({
     status: 400,
@@ -167,13 +172,13 @@ export class NoteController {
     type: BadRequest,
   })
   @ApiBody({
-    type: NoteEditEntity,
+    type: NoteEditDto,
   })
   async editActiveNote(
     @Param("id", ParseIntPipe) id: number,
-    @Body(new ValidationPipe())
-    note: NoteEditEntity
-  ): Promise<NoteEntity[]> {
+    @Body(new ValidationPipe({ skipMissingProperties: true }))
+    note: NoteEditDto
+  ): Promise<ActiveNoteEntity[]> {
     return await this.appService.editActiveNote(id, note);
   }
 }
